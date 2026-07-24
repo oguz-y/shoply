@@ -1,0 +1,6 @@
+@Eticaret_HostAddress = http://localhost:5023
+
+GET {{Eticaret_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
