@@ -46,7 +46,17 @@ namespace Eticaret.Controllers
             };
 
             _context.OguzFavorites.Add(favorite);
-            _context.SaveChanges();
+            try
+            {
+                _context.SaveChanges();
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateException)
+            {
+                //Aynı anda gelen ikinci istek - zaten eklenmiş demektir
+                var alreadyExists = _context.OguzFavorites
+                    .FirstOrDefault(f => f.UserId == dto.UserId && f.ProductId == dto.ProductId);
+                return Ok(alreadyExists);
+            }
 
             return Ok(favorite);
         }

@@ -23,6 +23,7 @@ export function FavoriteProvider({ children }) {
   const { user } = useAuth();
   const [favoriteIds, setFavoriteIds] = useState(new Set());
   const [loading, setLoading] = useState(false);
+  const [pendingIds, setPendingIds] = useState(new Set());                                                                                                                                                                          
 
   const loadFavorites = () => {
     if (!user) {
@@ -57,9 +58,20 @@ export function FavoriteProvider({ children }) {
     const userId = getUserIdFromToken(user?.token);
     if (!userId) return Promise.reject(new Error("Giriş yapmalısınız"));
 
+    if(pendingIds.has(productId)){
+      return Promise.resolve(); //zaten işlem sürüyor , yeni tıklamayı yoksay
+    }
+    setPendingIds((prev) => new Set(prev).add(productId));
+
     if (isFavorite(productId)) {
       return favoriteService.remove(userId, productId).then(() => {
         setFavoriteIds((prev) => {
+          const next = new Set(prev);
+          next.delete(productId);
+          return next;
+        });
+      }).finally(() => {
+        setPendingIds((prev) => {
           const next = new Set(prev);
           next.delete(productId);
           return next;
@@ -68,6 +80,12 @@ export function FavoriteProvider({ children }) {
     } else {
       return favoriteService.add({ userId, productId }).then(() => {
         setFavoriteIds((prev) => new Set(prev).add(productId));
+      }).finally(() => {
+        setPendingIds((prev) => {
+          const next = new Set(prev);
+          next.delete(productId);
+          return next;
+        });
       });
     }
   };

@@ -20,8 +20,10 @@ builder.Services.AddControllers().AddJsonOptions(options =>
 var encryptedConnectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 var decryptedConnectionString = Eticaret.Services.EncryptionHelper.Decrypt(encryptedConnectionString!);
 
+//veritabanı bağlantısı burada kuruluyor !!!
 builder.Services.AddDbContext<OtokarProgsContext>(options =>
     options.UseSqlServer(decryptedConnectionString));
+//******************************************
 
 var encryptedIyzicoApiKey = builder.Configuration["Iyzico:ApiKey"];
 var encryptedIyzicoSecretKey = builder.Configuration["Iyzico:SecretKey"];

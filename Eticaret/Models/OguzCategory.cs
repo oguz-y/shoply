@@ -14,7 +14,5 @@ public partial class OguzCategory
     public string? ParentId { get; set; }
     public virtual OguzCategory? Parent { get; set; }
     public virtual ICollection<OguzCategory> Children { get; set; } = new List<OguzCategory>();
-
-
     public virtual ICollection<OguzProduct> OguzProducts { get; set; } = new List<OguzProduct>();
 }
