@@ -9,49 +9,73 @@ export function CartProvider({ children }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  const openCartWithRefresh = (userId, options ={}) => {
-    const {silent = false} = options;
-    if(!silent) setIsOpen(true);
+  const openCartWithRefresh = (userId, options = {}) => {
+    const { silent = false } = options;
+    if (!silent) setIsOpen(true);
     setLoading(true);
     cartService
       .getByUser(userId)
       .then((response) => {
         const rawItems = response.data || [];
-        Promise.all(
+        return Promise.all(
           rawItems.map((item) =>
             productService
               .getById(item.productId)
-              .then((res) => ({ ...item, product: res.data}))
-              .catch(() => ({ ...item ,product:null}))
+              .then((res) => ({ ...item, product: res.data }))
+              .catch(() => ({ ...item, product: null }))
           )
-        ).then((withProducts) => {
-          setItems(withProducts);
-          setLoading(false);
-        });
+        );
+      })
+      .then((withProducts) => {
+        setItems(withProducts);
       })
       .catch(() => {
         setItems([]);
-        setLoading(false);
-      });
+      })
+      .finally(() => setLoading(false));
   };
 
   const closeCart = () => setIsOpen(false);
 
+  // Artık tüm sepeti değil, SADECE değişen item'ı günceller.
+  // Ürün bilgisi (isim/fiyat/görsel) zaten elimizde, tekrar çekmeye gerek yok.
   const updateItemQuantity = (id, quantity, userId) => {
-    return cartService.updateQuantity(id, quantity).then(() => {
-      openCartWithRefresh(userId, { silent:true});
+    const previousItems = items;
+
+    // Optimistic: anında local state güncelle
+    setItems((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, quantity } : item))
+    );
+
+    return cartService.updateQuantity(id, quantity).catch((error) => {
+      // Başarısız oldu, eski haline geri al
+      setItems(previousItems);
+      throw error; // CartDrawer'daki .catch bunu yakalayıp hata mesajı gösterecek
     });
   };
 
   const removeItem = (id, userId) => {
-    return cartService.removeFromCart(id).then(() => {
-      openCartWithRefresh(userId, { silent:true});
+    const previousItems = items;
+
+    setItems((prev) => prev.filter((item) => item.id !== id));
+
+    return cartService.removeFromCart(id).catch((error) => {
+      setItems(previousItems);
+      throw error;
     });
   };
 
   return (
     <CartContext.Provider
-      value={{ isOpen, items, loading, openCartWithRefresh, closeCart, updateItemQuantity, removeItem}}
+      value={{
+        isOpen,
+        items,
+        loading,
+        openCartWithRefresh,
+        closeCart,
+        updateItemQuantity,
+        removeItem,
+      }}
     >
       {children}
     </CartContext.Provider>
